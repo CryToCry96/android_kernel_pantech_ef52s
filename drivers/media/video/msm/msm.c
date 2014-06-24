@@ -400,7 +400,7 @@ static int msm_camera_v4l2_streamon(struct file *f, void *pctx,
 	pcam_inst = container_of(f->private_data,
 		struct msm_cam_v4l2_dev_inst, eventHandle);
 
-	D("%s Inst %p\n", __func__, pcam_inst);//pr_err//SD_check
+	D("%s Inst %p\n", __func__, pcam_inst);
 	WARN_ON(pctx != f->private_data);
 
 	mutex_lock(&pcam->vid_lock);
@@ -413,17 +413,17 @@ static int msm_camera_v4l2_streamon(struct file *f, void *pctx,
 		return -EINVAL;
 	}
 
-	D("%s Calling videobuf_streamon", __func__);//pr_err//SD_check
+	D("%s Calling videobuf_streamon", __func__);
 	/* if HW streaming on is successful, start buffer streaming */
 	rc = vb2_streamon(&pcam_inst->vid_bufq, buf_type);
-	D("%s, videobuf_streamon returns %d\n", __func__, rc);//pr_err//SD_check
+	D("%s, videobuf_streamon returns %d\n", __func__, rc);
 
 	/* turn HW (VFE/sensor) streaming */
 	pcam_inst->streamon = 1;
 	rc = msm_server_streamon(pcam, pcam_inst->my_index);
 	mutex_unlock(&pcam_inst->inst_lock);
 	mutex_unlock(&pcam->vid_lock);
-	D("%s rc = %d\n", __func__, rc);//pr_err//SD_check
+	D("%s rc = %d\n", __func__, rc);
 	return rc;
 }
 
@@ -437,7 +437,7 @@ static int msm_camera_v4l2_streamoff(struct file *f, void *pctx,
 	pcam_inst = container_of(f->private_data,
 		struct msm_cam_v4l2_dev_inst, eventHandle);
 
-	D("%s Inst %p\n", __func__, pcam_inst);//pr_err//SD_check
+	D("%s Inst %p\n", __func__, pcam_inst);
 	WARN_ON(pctx != f->private_data);
 
 	if ((buf_type != V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE) &&
@@ -459,7 +459,7 @@ static int msm_camera_v4l2_streamoff(struct file *f, void *pctx,
 
 	/* stop buffer streaming */
 	rc = vb2_streamoff(&pcam_inst->vid_bufq, buf_type);
-	D("%s, videobuf_streamoff returns %d\n", __func__, rc);//pr_err//SD_check
+	D("%s, videobuf_streamoff returns %d\n", __func__, rc);
 
 	mutex_unlock(&pcam_inst->inst_lock);
 	mutex_unlock(&pcam->vid_lock);
@@ -1243,6 +1243,10 @@ long msm_v4l2_evt_notify(struct msm_cam_media_controller *mctl,
 	v4l2_ev = evt_payload.evt;
 	v4l2_ev.id = 0;
 	pcam = mctl->pcam_ptr;
+	if(!pcam) {
+		pr_err("%s: pcam is NULL\n", __func__);
+		return -EINVAL;
+	}
 	ktime_get_ts(&v4l2_ev.timestamp);
 	if (evt_payload.payload_length > 0 && evt_payload.payload != NULL) {
 		mutex_lock(&pcam->event_lock);

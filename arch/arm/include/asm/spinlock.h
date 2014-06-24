@@ -175,12 +175,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
 
 #define arch_spin_lock_flags(lock, flags) arch_spin_lock(lock)
 
-static inline int arch_spin_is_locked(arch_spinlock_t *lock)
-{
-	unsigned long tmp = ACCESS_ONCE(lock->lock);
-	return (((tmp >> TICKET_SHIFT) ^ tmp) & TICKET_MASK) != 0;
-}
-
 static inline void arch_spin_lock(arch_spinlock_t *lock)
 {
 	unsigned long tmp, ticket, next_ticket;
@@ -238,9 +232,6 @@ static inline void arch_spin_unlock(arch_spinlock_t *lock)
 
 	smp_mb();
 
-	if(!arch_spin_is_locked(lock))
-		return;
-
 	/* Bump now_serving by 1 */
 	__asm__ __volatile__(
 "1:	ldrex	%[ticket], [%[lockaddr]]\n"
@@ -278,6 +269,12 @@ static inline void arch_spin_unlock_wait(arch_spinlock_t *lock)
 	  [fixup]"+r" (fixup)
 	: [lockaddr]"r" (&lock->lock)
 	: "cc");
+}
+
+static inline int arch_spin_is_locked(arch_spinlock_t *lock)
+{
+	unsigned long tmp = ACCESS_ONCE(lock->lock);
+	return (((tmp >> TICKET_SHIFT) ^ tmp) & TICKET_MASK) != 0;
 }
 
 static inline int arch_spin_is_contended(arch_spinlock_t *lock)

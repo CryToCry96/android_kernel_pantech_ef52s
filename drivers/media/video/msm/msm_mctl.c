@@ -41,7 +41,6 @@
 #include "msm_camera_eeprom.h"
 #include "msm_csi_register.h"
 
-//#define CONFIG_MSM_CAMERA_DEBUG //psj_test
 #ifdef CONFIG_MSM_CAMERA_DEBUG
 #define D(fmt, args...) pr_debug("msm_mctl: " fmt, ##args)
 #else
@@ -631,7 +630,7 @@ pr_err("[SD_check] %s/ VIDIOC_MSM_CSIPHY_RELEASE",__func__);
 			VIDIOC_MSM_CSIPHY_RELEASE,
 			sinfo->sensor_platform_info->csi_lane_params);
 	}
-//2013.05.21 for 1213507 patch //VIDIOC_MSM_CSIPHY_RELEASE->VIDIOC_MSM_CSID_RELEASE// Case:00871739 : bug fix csiphy reset - jjhwang 2012.06.25.
+
 	if (p_mctl->csid_sdev) {
 pr_err("[SD_check] %s/ VIDIOC_MSM_CSID_RELEASE",__func__);
 		v4l2_subdev_call(p_mctl->csid_sdev, core, ioctl,
@@ -647,10 +646,8 @@ pr_err("[SD_check] %s/ (p_mctl->act_sdev, core, s_power, 0)",__func__);
 pr_err("[SD_check] %s/ (p_mctl->sensor_sdev, core, s_power, 0) ",__func__);
 	v4l2_subdev_call(p_mctl->sensor_sdev, core, s_power, 0);
 
-#if	1//def F_PANTECH_CAMERA_DEADBEEF_ERROR_FIX
-	v4l2_subdev_call(p_mctl->ispif_sdev, 
-					core, ioctl, VIDIOC_MSM_ISPIF_REL, NULL); 
-#endif
+	v4l2_subdev_call(p_mctl->ispif_sdev,
+			core, ioctl, VIDIOC_MSM_ISPIF_REL, NULL);
 	pm_qos_update_request(&p_mctl->pm_qos_req_list,
 				PM_QOS_DEFAULT_VALUE);
 	pm_qos_remove_request(&p_mctl->pm_qos_req_list);

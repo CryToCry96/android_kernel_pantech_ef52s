@@ -88,7 +88,6 @@ static int set_cpu_freq(struct cpufreq_policy *policy, unsigned int new_freq)
 	cpufreq_notify_transition(&freqs, CPUFREQ_PRECHANGE);
 
 	ret = acpuclk_set_rate(policy->cpu, new_freq, SETRATE_CPUFREQ);
-	
 	if (!ret)
 		cpufreq_notify_transition(&freqs, CPUFREQ_POSTCHANGE);
 

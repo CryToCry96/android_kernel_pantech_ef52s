@@ -1193,9 +1193,6 @@ err:
 	return rc;
 }
 
-
-
-
 static long venc_get_qp_value(struct video_client_ctx *client_ctx,
 		__s32 frametype, __s32 *qp)
 {

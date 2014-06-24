@@ -262,7 +262,17 @@ static int adreno_setup_pt(struct kgsl_device *device,
 	if (result)
 		goto unmap_memstore_desc;
 
+	if (adreno_is_a305(adreno_dev)) {
+		result = kgsl_mmu_map_global(pagetable,
+				&adreno_dev->on_resume_cmd,
+				GSL_PT_PAGE_RV | GSL_PT_PAGE_WV);
+		if (result)
+			goto unmap_setstate_desc;
+	}
 	return result;
+
+unmap_setstate_desc:
+	kgsl_mmu_unmap(pagetable, &device->mmu.setstate_memory);
 
 unmap_memstore_desc:
 	kgsl_mmu_unmap(pagetable, &device->memstore);
@@ -755,101 +765,6 @@ done:
 	return ret;
 
 }
-static void adreno_of_free_bus_scale_info(struct msm_bus_scale_pdata *pdata)
-{
-	int i;
-
-	if (pdata == NULL)
-		return;
-
-	for (i = 0;  pdata->usecase && i < pdata->num_usecases; i++)
-		kfree(pdata->usecase[i].vectors);
-
-	kfree(pdata->usecase);
-	kfree(pdata);
-}
-
-struct msm_bus_scale_pdata *adreno_of_get_bus_scale(struct device_node *node)
-{
-	static int bus_vectors_src[3] = {MSM_BUS_MASTER_GRAPHICS_3D,
-		MSM_BUS_MASTER_GRAPHICS_3D_PORT1, MSM_BUS_MASTER_V_OCMEM_GFX3D};
-	static int bus_vectors_dst[2] = {MSM_BUS_SLAVE_EBI_CH0,
-		MSM_BUS_SLAVE_OCMEM};
-	const unsigned int *vectors;
-	struct msm_bus_scale_pdata *pdata;
-	int i, j, len, num_paths;
-	int ret = -EINVAL;
-
-	pdata = kzalloc(sizeof(*pdata), GFP_KERNEL);
-
-	if (!pdata) {
-		KGSL_CORE_ERR("kzalloc(%d) failed\n", sizeof(*pdata));
-		return ERR_PTR(-ENOMEM);
-	}
-
-	if (adreno_of_read_property(node, "qcom,grp3d-num-bus-scale-usecases",
-		&pdata->num_usecases)) {
-		pdata->num_usecases = 0;
-		goto err;
-	}
-
-	pdata->usecase =  kzalloc(pdata->num_usecases *
-		sizeof(struct msm_bus_paths), GFP_KERNEL);
-
-	if (pdata->usecase == NULL) {
-		KGSL_CORE_ERR("kzalloc (%d) failed\n",
-			pdata->num_usecases * sizeof(struct msm_bus_paths));
-		ret = -ENOMEM;
-		goto err;
-	}
-
-	if (adreno_of_read_property(node, "qcom,grp3d-num-vectors-per-usecase",
-		&num_paths))
-		goto err;
-
-	vectors = of_get_property(node, "qcom,grp3d-vectors", &len);
-
-	if (len != pdata->num_usecases * num_paths *
-		sizeof(struct msm_bus_vectors)) {
-		KGSL_CORE_ERR("Invalid size for the bus scale vectors\n");
-		goto err;
-	}
-
-	for (i = 0; i < pdata->num_usecases; i++) {
-		pdata->usecase[i].num_paths = num_paths;
-		pdata->usecase[i].vectors = kzalloc(num_paths *
-						sizeof(struct msm_bus_vectors),
-						GFP_KERNEL);
-		if (!pdata->usecase[i].vectors) {
-			KGSL_CORE_ERR("kzalloc(%d) failed\n",
-				num_paths * sizeof(struct msm_bus_vectors));
-			ret = -ENOMEM;
-			goto err;
-		}
-		for (j = 0; j < num_paths; j++) {
-			int index = (i * num_paths + j) * 4;
-			pdata->usecase[i].vectors[j].src =
-				bus_vectors_src[be32_to_cpu(vectors[index])];
-			pdata->usecase[i].vectors[j].dst =
-				bus_vectors_dst[
-					be32_to_cpu(vectors[index + 1])];
-			pdata->usecase[i].vectors[j].ab =
-				be32_to_cpu(vectors[index + 2]);
-			pdata->usecase[i].vectors[j].ib =
-				KGSL_CONVERT_TO_MBPS(
-					be32_to_cpu(vectors[index + 3]));
-		}
-	}
-
-	pdata->name = "grp3d";
-
-	return pdata;
-
-err:
-	adreno_of_free_bus_scale_info(pdata);
-
-	return ERR_PTR(ret);
-}
 
 static struct msm_dcvs_core_info *adreno_of_get_dcvs(struct device_node *parent)
 {
@@ -1076,7 +991,7 @@ static int adreno_of_get_pdata(struct platform_device *pdev)
 
 	/* Bus Scale Data */
 
-	pdata->bus_scale_table = adreno_of_get_bus_scale(pdev->dev.of_node);
+	pdata->bus_scale_table = msm_bus_cl_get_pdata(pdev);
 	if (IS_ERR_OR_NULL(pdata->bus_scale_table)) {
 		ret = PTR_ERR(pdata->bus_scale_table);
 		goto err;
@@ -1097,7 +1012,6 @@ static int adreno_of_get_pdata(struct platform_device *pdev)
 
 err:
 	if (pdata) {
-		adreno_of_free_bus_scale_info(pdata->bus_scale_table);
 		if (pdata->core_info)
 			kfree(pdata->core_info->freq_tbl);
 		kfree(pdata->core_info);
@@ -1189,6 +1103,7 @@ adreno_probe(struct platform_device *pdev)
 		goto error_close_rb;
 
 	adreno_debugfs_init(device);
+	adreno_dev->on_resume_issueib = false;
 
 	kgsl_pwrscale_init(device);
 	kgsl_pwrscale_attach_policy(device, ADRENO_DEFAULT_PWRSCALE_POLICY);
@@ -1214,6 +1129,8 @@ static int __devexit adreno_remove(struct platform_device *pdev)
 
 	kgsl_pwrscale_detach_policy(device);
 	kgsl_pwrscale_close(device);
+	if (adreno_is_a305(adreno_dev))
+		kgsl_sharedmem_free(&adreno_dev->on_resume_cmd);
 
 	adreno_ringbuffer_close(&adreno_dev->ringbuffer);
 	kgsl_device_platform_remove(device);
@@ -1288,6 +1205,18 @@ static int adreno_start(struct kgsl_device *device, unsigned int init_ram)
 		hang_detect_regs[6] = A3XX_RBBM_PERFCTR_SP_7_LO;
 		hang_detect_regs[7] = A3XX_RBBM_PERFCTR_SP_7_HI;
 	}
+
+	/*
+	 * Allocate some memory for A305 to do an extra draw on resume
+	 * from SLUMBER state.
+	 */
+	if (adreno_is_a305(adreno_dev) &&
+			adreno_dev->on_resume_cmd.hostptr == NULL) {
+		status = kgsl_allocate_contiguous(&adreno_dev->on_resume_cmd,
+					PAGE_SIZE);
+		if (status)
+			goto error_clk_off;
+        }
 
 	status = kgsl_mmu_start(device);
 	if (status)
@@ -2010,6 +1939,8 @@ static int adreno_suspend_context(struct kgsl_device *device)
 		adreno_drawctxt_switch(adreno_dev, NULL, 0);
 		status = adreno_idle(device);
 	}
+	if (adreno_is_a305(adreno_dev))
+		adreno_dev->on_resume_issueib = true;
 
 	return status;
 }

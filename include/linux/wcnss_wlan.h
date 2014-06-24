@@ -67,6 +67,7 @@ void wcnss_reset_intr(void);
 void wcnss_suspend_notify(void);
 void wcnss_resume_notify(void);
 #endif 
+int wcnss_cold_boot_done(void);
 
 #define wcnss_wlan_get_drvdata(dev) dev_get_drvdata(dev)
 #define wcnss_wlan_set_drvdata(dev, data) dev_set_drvdata((dev), (data))

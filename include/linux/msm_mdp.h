@@ -68,9 +68,7 @@
 						struct msmfb_data)
 #define MSMFB_WRITEBACK_TERMINATE _IO(MSMFB_IOCTL_MAGIC, 155)
 #define MSMFB_MDP_PP _IOWR(MSMFB_IOCTL_MAGIC, 156, struct msmfb_mdp_pp)
-
-#define MSMFB_OVERLAY_VSYNC_CTRL  _IOW(MSMFB_IOCTL_MAGIC, 160, unsigned int)
-
+#define MSMFB_OVERLAY_VSYNC_CTRL _IOW(MSMFB_IOCTL_MAGIC, 160, unsigned int)
 #define MSMFB_VSYNC_CTRL  _IOW(MSMFB_IOCTL_MAGIC, 161, unsigned int)
 #define MSMFB_METADATA_SET  _IOW(MSMFB_IOCTL_MAGIC, 162, struct msmfb_metadata)
 #define MSMFB_OVERLAY_COMMIT      _IO(MSMFB_IOCTL_MAGIC, 163)
@@ -431,7 +429,6 @@ enum {
 	mdp_lut_max,
 };
 
-
 struct mdp_igc_lut_data {
 	uint32_t block;
 	uint32_t len, ops;
@@ -528,7 +525,7 @@ struct mdp_mixer_info {
 	int z_order;
 };
 
-#define MAX_PIPE_PER_MIXER  5//4
+#define MAX_PIPE_PER_MIXER  5
 
 struct msmfb_mixer_info_req {
 	int mixer_num;

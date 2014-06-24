@@ -1529,9 +1529,7 @@ int usbnet_suspend (struct usb_interface *intf, pm_message_t message)
 		spin_lock_irq(&dev->txq.lock);
 		/* don't autosuspend while transmitting */
 		if (dev->txq.qlen && PMSG_IS_AUTO(message)) {
-			// P12125 No RX packet Bug fix-->
 			dev->suspend_count--;
-			// P12125 No RX packet Bug fix--<
 			spin_unlock_irq(&dev->txq.lock);
 			return -EBUSY;
 		} else {

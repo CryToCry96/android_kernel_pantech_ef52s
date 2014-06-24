@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -115,10 +115,6 @@ static int mipi_dsi_off(struct platform_device *pdev)
 	ret = panel_next_off(pdev);
 #endif
 
-#ifdef CONFIG_MSM_BUS_SCALING
-	mdp_bus_scale_update_request(0);
-#endif
-
 	mipi_dsi_clk_disable();
 
 	/* disbale dsi engine */
@@ -142,16 +138,6 @@ static int mipi_dsi_off(struct platform_device *pdev)
 	return ret;
 }
 
-#ifdef PANTECH_LCD_BUG_FIX_MDP_BANDWIDTH_REQUEST
-#define OVERLAY_BUS_SCALE_TABLE_BASE    6
-struct mdp4_overlay_perf {
-	u32 mdp_clk_rate;
-	u32 use_ov0_blt;
-	u32 use_ov1_blt;
-	u32 mdp_bw;
-};
-extern struct mdp4_overlay_perf perf_current;
-#endif
 static int mipi_dsi_on(struct platform_device *pdev)
 {
 	int ret = 0;
@@ -165,9 +151,6 @@ static int mipi_dsi_on(struct platform_device *pdev)
 	u32 ystride, bpp, data;
 	u32 dummy_xres, dummy_yres;
 	int target_type = 0;
-#ifdef PANTECH_LCD_BUG_FIX_MDP_BANDWIDTH_REQUEST
-	struct mdp4_overlay_perf *perf_cur = &perf_current;
-#endif
 
 	pr_debug("%s+:\n", __func__);
 
@@ -334,15 +317,6 @@ static int mipi_dsi_on(struct platform_device *pdev)
 		mipi_dsi_ahb_ctrl(0);
 		mipi_dsi_unprepare_clocks();
 	}
-
-#ifdef CONFIG_MSM_BUS_SCALING
-	mdp_bus_scale_update_request(2);
-#ifdef PANTECH_LCD_BUG_FIX_MDP_BANDWIDTH_REQUEST
-	//pr_info("[LIVED] [0] perf_cur->mdp_bw=%d\n", perf_cur->mdp_bw);
-	perf_cur->mdp_bw = OVERLAY_BUS_SCALE_TABLE_BASE - 2;
-	//pr_info("[LIVED] [1] perf_cur->mdp_bw=%d\n", perf_cur->mdp_bw);
-#endif
-#endif
 
 	if (mdp_rev >= MDP_REV_41)
 		mutex_unlock(&mfd->dma->ov_mutex);

@@ -2561,7 +2561,7 @@ static int smsm_init(void)
 						 SMSM_NUM_INTR_MUX *
 						 sizeof(uint32_t));
 
- 	i = smsm_cb_init();
+	i = smsm_cb_init();
 	if (i)
 		return i;
 

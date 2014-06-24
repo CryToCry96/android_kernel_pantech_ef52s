@@ -270,7 +270,7 @@ static int msm_ispif_config(struct ispif_device *ispif,
 	uint8_t vfe_intf;
 	params_len = params_list->len;
 	ispif_params = params_list->params;
-	CDBG("Enable interface\n");//pr_err//SD_check
+	CDBG("Enable interface\n");
 	msm_camera_io_w(0x00000000, ispif->base + ISPIF_IRQ_MASK_ADDR);
 	msm_camera_io_w(0x00000000, ispif->base + ISPIF_IRQ_MASK_1_ADDR);
 	msm_camera_io_w(0x00000000, ispif->base + ISPIF_IRQ_MASK_2_ADDR);
@@ -278,7 +278,7 @@ static int msm_ispif_config(struct ispif_device *ispif,
 		intftype = ispif_params[i].intftype;
 		vfe_intf = ispif_params[i].vfe_intf;
 		CDBG("%s intftype %x, vfe_intf %d, csid %d\n", __func__,
-			intftype, vfe_intf, ispif_params[i].csid);//pr_err//SD_check
+			intftype, vfe_intf, ispif_params[i].csid);
 		if ((intftype >= INTF_MAX) ||
 			(ispif->csid_version <= CSID_VERSION_V2 &&
 			vfe_intf > VFE0) ||
@@ -447,7 +447,7 @@ static int msm_ispif_stop_intf_transfer(struct ispif_device *ispif,
 	uint16_t intfnum = 0, mask = intfmask;
 	mutex_lock(&ispif->mutex);
 	CDBG("%s intfmask %x intf_cmd_mask %x\n", __func__, intfmask,
-		intf_cmd_mask);//pr_err//SD_check
+		intf_cmd_mask);
 	msm_ispif_intf_cmd(ispif, intfmask, intf_cmd_mask, vfe_intf);
 	while (mask != 0) {
 		if (intfmask & (0x1 << intfnum)) {
@@ -818,18 +818,14 @@ static long msm_ispif_cmd(struct v4l2_subdev *sd, void *arg)
 static long msm_ispif_subdev_ioctl(struct v4l2_subdev *sd, unsigned int cmd,
 								void *arg)
 {
-#if	1//def F_PANTECH_CAMERA_DEADBEEF_ERROR_FIX
 	struct ispif_device *ispif;
-#endif
 	switch (cmd) {
 	case VIDIOC_MSM_ISPIF_CFG:
 		return msm_ispif_cmd(sd, arg);
-#if	1//def F_PANTECH_CAMERA_DEADBEEF_ERROR_FIX
-	case VIDIOC_MSM_ISPIF_REL: 
-		ispif = (struct ispif_device *)v4l2_get_subdevdata(sd); 
-		msm_ispif_release(ispif); 
+	case VIDIOC_MSM_ISPIF_REL:
+		ispif =	(struct ispif_device *)v4l2_get_subdevdata(sd);
+		msm_ispif_release(ispif);
 		return 0;
-#endif
 	default:
 		return -ENOIOCTLCMD;
 	}
