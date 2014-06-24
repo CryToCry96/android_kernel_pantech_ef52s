@@ -57,10 +57,7 @@ struct ci13xxx_td {
 #define TD_CURR_OFFSET        (0x0FFFUL <<  0)
 #define TD_FRAME_NUM          (0x07FFUL <<  0)
 #define TD_RESERVED_MASK      (0x0FFFUL <<  0)
-// P13120, [PATCH] fix memory access of shared memory on armv5 machines [CRs-Fixed: 494323] --->>>
-//} __attribute__ ((packed));
 } __attribute__ ((packed, aligned(4)));
-// P13120, [PATCH] fix memory access of shared memory on armv5 machines [CRs-Fixed: 494323] ---<<<
 
 /* DMA layout of queue heads */
 struct ci13xxx_qh {
@@ -78,10 +75,7 @@ struct ci13xxx_qh {
 	/* 9 */
 	u32 RESERVED;
 	struct usb_ctrlrequest   setup;
-// P13120, [PATCH] fix memory access of shared memory on armv5 machines [CRs-Fixed: 494323] --->>>
-//} __attribute__ ((packed));
 } __attribute__ ((packed, aligned(4)));
-// P13120, [PATCH] fix memory access of shared memory on armv5 machines [CRs-Fixed: 494323] ---<<<
 
 /* Extension of usb_request */
 struct ci13xxx_req {
@@ -113,10 +107,8 @@ struct ci13xxx_ep {
 	spinlock_t                            *lock;
 	struct device                         *device;
 	struct dma_pool                       *td_pool;
-// P12125, Daytona FABRIC Hang Issue [CR474557] --->>>
 	struct ci13xxx_td                     *last_zptr;
 	dma_addr_t                            last_zdma;
-// P12125, Daytona FABRIC Hang Issue [CR474557] ---<<<
 	unsigned long dTD_update_fail_count;
 	unsigned long			      prime_fail_count;
 	int				      prime_timer_count;
@@ -151,9 +143,7 @@ struct ci13xxx {
 	struct dma_pool           *qh_pool;   /* DMA pool for queue heads */
 	struct dma_pool           *td_pool;   /* DMA pool for transfer descs */
 	struct usb_request        *status;    /* ep0 status request */
-// P12125, Daytona FABRIC Hang Issue [CR474557] --->>>
 	void                      *status_buf;/* GET_STATUS buffer */
-// P12125, Daytona FABRIC Hang Issue [CR474557] ---<<<
 
 	struct usb_gadget          gadget;     /* USB slave device */
 	struct ci13xxx_ep          ci13xxx_ep[ENDPT_MAX]; /* extended endpts */

@@ -263,7 +263,6 @@ struct mdp4_iommu_pipe_info {
 #define IOMMU_FREE_LIST_MAX 32
 
 struct iommu_free_list {
-	int total;
 	int fndx;
 	struct ion_handle *ihdl[IOMMU_FREE_LIST_MAX];
 };
@@ -292,6 +291,8 @@ struct mdp4_overlay_pipe {
 	uint32 src_format;
 	uint32 src_width;	/* source img width */
 	uint32 src_height;	/* source img height */
+	uint32 prev_src_width;	/* source img width */
+	uint32 prev_src_height;	/* source img height */
 	uint32 is_3d;
 	uint32 src_width_3d;	/* source img width */
 	uint32 src_height_3d;	/* source img height */
@@ -607,7 +608,7 @@ void mdp4_mixer_stage_commit(int mixer);
 void mdp4_dsi_cmd_do_update(int cndx, struct mdp4_overlay_pipe *pipe);
 void mdp4_lcdc_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe);
 void mdp4_dtv_pipe_queue(int cndx, struct mdp4_overlay_pipe *pipe);
-void mdp4_overlay_pipe_free(struct mdp4_overlay_pipe *pipe);
+void mdp4_overlay_pipe_free(struct mdp4_overlay_pipe *pipe, int all);
 void mdp4_overlay_dmap_cfg(struct msm_fb_data_type *mfd, int lcdc);
 void mdp4_overlay_dmap_xy(struct mdp4_overlay_pipe *pipe);
 void mdp4_overlay_dmae_cfg(struct msm_fb_data_type *mfd, int atv);
@@ -628,6 +629,7 @@ void mdp4_lcdc_wait4vsync(int cndx);
 void mdp4_overlay_lcdc_vsync_push(struct msm_fb_data_type *mfd,
 				struct mdp4_overlay_pipe *pipe);
 void mdp4_mddi_overlay_dmas_restore(void);
+void mdp4_overlay_solidfill_init(struct mdp4_overlay_pipe *pipe);
 
 #ifndef CONFIG_FB_MSM_MIPI_DSI
 void mdp4_mddi_dma_busy_wait(struct msm_fb_data_type *mfd);
@@ -775,7 +777,6 @@ void mdp4_dsi_cmd_dma_busy_check(void);
 
 
 #ifdef CONFIG_FB_MSM_MIPI_DSI
-void mdp_dsi_cmd_overlay_suspend(struct msm_fb_data_type *mfd);
 int mdp4_dsi_cmd_on(struct platform_device *pdev);
 int mdp4_dsi_cmd_off(struct platform_device *pdev);
 int mdp4_dsi_video_off(struct platform_device *pdev);
@@ -858,12 +859,6 @@ static inline void mdp4_overlay_dsi_video_start(void)
 {
 	/* empty */
 }
-#ifdef CONFIG_FB_MSM_MDP40
-static inline void mdp_dsi_cmd_overlay_suspend(struct msm_fb_data_type *mfd)
-{
-	/* empty */
-}
-#endif
 #endif /* CONFIG_FB_MSM_MIPI_DSI */
 
 void mdp4_dsi_cmd_kickoff_ui(struct msm_fb_data_type *mfd,

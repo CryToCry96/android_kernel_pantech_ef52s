@@ -649,8 +649,15 @@ static ssize_t hdmi_msm_wta_cec_frame(struct device *dev,
 	struct device_attribute *attr, const char *buf, size_t count)
 {
 	int i;
-	int retry = ((struct hdmi_msm_cec_msg *) buf)->retransmit;
+	struct hdmi_msm_cec_msg *msg;
+	int retry;
 
+	msg = (struct hdmi_msm_cec_msg *) buf;
+	retry = msg->retransmit;
+	if (msg->frame_size > CEC_MAX_OPERAND_SIZE) {
+		pr_err("%s: cec msg too large\n", __func__);
+		return -EINVAL;
+	}
 	for (i = 0; i < RETRANSMIT_MAX_NUM; i++) {
 		hdmi_msm_cec_msg_send((struct hdmi_msm_cec_msg *) buf);
 		if (hdmi_msm_state->cec_frame_wr_status
@@ -733,7 +740,7 @@ static DEVICE_ATTR(cec, S_IRUGO | S_IWUSR,
 	hdmi_msm_rda_cec,
 	hdmi_msm_wta_cec);
 
-static DEVICE_ATTR(cec_logical_addr, S_IRUGO | S_IWUSR,
+static DEVICE_ATTR(cec_logical_addr, S_IRUSR | S_IWUSR,
 	hdmi_msm_rda_cec_logical_addr,
 	hdmi_msm_wta_cec_logical_addr);
 
@@ -840,7 +847,7 @@ static DEVICE_ATTR(edid_modes, S_IRUGO, hdmi_common_rda_edid_modes, NULL);
 static DEVICE_ATTR(hpd, S_IRUGO | S_IWUGO, hdmi_common_rda_hpd,
 	hdmi_common_wta_hpd);
 static DEVICE_ATTR(hdcp, S_IRUGO, hdmi_common_rda_hdcp, NULL);
-static DEVICE_ATTR(pa, S_IRUGO,
+static DEVICE_ATTR(pa, S_IRUSR,
 	hdmi_common_rda_edid_physical_address, NULL);
 static DEVICE_ATTR(scan_info, S_IRUGO,
 	hdmi_common_rda_edid_scan_info, NULL);
