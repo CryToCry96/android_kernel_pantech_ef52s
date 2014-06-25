@@ -229,7 +229,7 @@ static int msm_stats_buf_prepare(struct msm_stats_bufq_ctrl *stats_ctrl,
 	}
 	if (ion_map_iommu(client, stats_buf->handle,
 			domain_num, 0, SZ_4K,
-			0, &paddr, &len, UNCACHED, 0) < 0) {
+			0, &paddr, &len, 0, 0) < 0) {
 		rc = -EINVAL;
 		pr_err("%s: cannot map address", __func__);
 		goto out2;
@@ -332,7 +332,6 @@ static int msm_stats_bufq_flush(struct msm_stats_bufq_ctrl *stats_ctrl,
 	struct msm_stats_bufq *bufq = NULL;
 	struct msm_stats_meta_buf *stats_buf = NULL;
 
-	D("%s: type : %d\n", __func__, stats_type);
 	if(stats_ctrl)
 		bufq = stats_ctrl->bufq[stats_type];
 	if(!bufq) {
@@ -383,6 +382,7 @@ static int msm_stats_dqbuf(struct msm_stats_bufq_ctrl *stats_ctrl,
 		rc = -1;
 		return rc;
 	}
+	bufq = stats_ctrl->bufq[stats_type];
 
 	list_for_each_entry(stats_buf, &bufq->head, list) {
 		if(!stats_buf)
@@ -423,6 +423,7 @@ static int msm_stats_querybuf(struct msm_stats_bufq_ctrl *stats_ctrl,
 		rc = -1;
 		return rc;
 	}
+	bufq = stats_ctrl->bufq[info->type];
 	*pp_stats_buf = &bufq->bufs[info->buf_idx];
 
 	return rc;
@@ -485,7 +486,7 @@ static int msm_stats_buf_dispatch(struct msm_stats_bufq_ctrl *stats_ctrl,
 	*vaddr = NULL;
 	*fd = 0;
 	if(stats_ctrl)
-		bufq = stats_ctrl->bufq[stats_type];
+	 	bufq = stats_ctrl->bufq[stats_type];
 	if(!bufq) {
 		pr_err("%s:%d bufq is NULL stats_ctrl :%x\n", __func__, __LINE__,
 			(unsigned int)stats_ctrl);
@@ -493,6 +494,7 @@ static int msm_stats_buf_dispatch(struct msm_stats_bufq_ctrl *stats_ctrl,
 		return rc;
 	}
 
+	bufq = stats_ctrl->bufq[stats_type];
 	for (i = 0; i < bufq->num_bufs; i++) {
 		if (bufq->bufs[i].paddr == phy_addr) {
 			stats_buf = &bufq->bufs[i];

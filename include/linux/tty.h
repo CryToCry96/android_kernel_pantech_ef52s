@@ -285,7 +285,6 @@ struct tty_struct {
 	unsigned char update_room_in_ldisc:1;
 	unsigned char ctrl_status;	/* ctrl_lock */
 	unsigned int receive_room;	/* Bytes free for queue */
-	unsigned int rr_bug;
 
 	struct tty_struct *link;
 	struct fasync_struct *fasync;

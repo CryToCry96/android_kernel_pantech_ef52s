@@ -1973,7 +1973,6 @@ static int _hardware_enqueue(struct ci13xxx_ep *mEp, struct ci13xxx_req *mReq)
 	for (i = 1; i < 5; i++)
 		mReq->ptr->page[i] =
 			(mReq->req.dma + i * CI13XXX_PAGE_SIZE) & ~TD_RESERVED_MASK;
-	wmb();
 
 // P13120, [PATCH] fix memory access of shared memory on armv5 machines [CRs-Fixed: 494323] --->>>
 	wmb();
@@ -2300,7 +2299,7 @@ __acquires(udc->lock)
 
 	/*stop charging upon reset */
 	if (udc->transceiver)
-		usb_phy_set_power(udc->transceiver, 100);
+		usb_phy_set_power(udc->transceiver, 0);
 
 	retval = _gadget_stop_activity(&udc->gadget);
 	if (retval)
@@ -2309,7 +2308,6 @@ __acquires(udc->lock)
 	retval = hw_usb_reset();
 	if (retval)
 		goto done;
-
 	spin_lock(udc->lock);
 
  done:

@@ -57,7 +57,7 @@ MODULE_ALIAS("mmc:block");
 #define INAND_CMD38_ARG_SECERASE 0x80
 #define INAND_CMD38_ARG_SECTRIM1 0x81
 #define INAND_CMD38_ARG_SECTRIM2 0x88
-#define MMC_BLK_TIMEOUT_MS  (10 * 60 * 1000)        /* 10 minute timeout */
+#define MMC_BLK_TIMEOUT_MS  (30 * 1000)        /* 30 sec timeout */
 
 #define MMC_SANITIZE_REQ_TIMEOUT 240000 /* msec */
 
@@ -488,14 +488,7 @@ static int mmc_blk_ioctl_cmd(struct block_device *bdev,
 	md = mmc_blk_get(bdev->bd_disk);
 	if (!md) {
 		err = -EINVAL;
-		/* [kernel patch] mmc: card: Avoid null pointer dereference (youngkyu.jeon@skhynix.com) */
-
-#ifdef CONFIG_MMC_DEBUG_FOR_HYNIX
-		goto cmd_err;
-#else
-		goto cmd_done;
-#endif 
-		/* End of [kernel patch] */
+		goto blk_err;
 	}
 
 	card = md->queue.card;
@@ -594,10 +587,7 @@ cmd_rel_host:
 
 cmd_done:
 	mmc_blk_put(md);
-
-#ifdef CONFIG_MMC_DEBUG_FOR_HYNIX
-cmd_err: /* [kernel patch] mmc: card: Avoid null pointer dereference (youngkyu.jeon@skhynix.com) */
-#endif
+blk_err:
 	kfree(idata->buf);
 	kfree(idata);
 	return err;
@@ -1063,7 +1053,7 @@ static int mmc_blk_issue_sanitize_rq(struct mmc_queue *mq,
 	pr_debug("%s: %s - SANITIZE IN PROGRESS...\n",
 		mmc_hostname(card->host), __func__);
 
-	err = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
+	err = mmc_switch_ignore_timeout(card, EXT_CSD_CMD_SET_NORMAL,
 					EXT_CSD_SANITIZE_START, 1,
 					MMC_SANITIZE_REQ_TIMEOUT);
 
@@ -2557,14 +2547,27 @@ static int mmc_blk_suspend(struct mmc_card *card)
 {
 	struct mmc_blk_data *part_md;
 	struct mmc_blk_data *md = mmc_get_drvdata(card);
+	int rc = 0;
 
 	if (md) {
-		mmc_queue_suspend(&md->queue);
+		rc = mmc_queue_suspend(&md->queue);
+		if (rc)
+			goto out;
 		list_for_each_entry(part_md, &md->part, part) {
-			mmc_queue_suspend(&part_md->queue);
+			rc = mmc_queue_suspend(&part_md->queue);
+			if (rc)
+				goto out_resume;
 		}
 	}
-	return 0;
+	goto out;
+
+ out_resume:
+	mmc_queue_resume(&md->queue);
+	list_for_each_entry(part_md, &md->part, part) {
+		mmc_queue_resume(&part_md->queue);
+	}
+ out:
+	return rc;
 }
 
 static int mmc_blk_resume(struct mmc_card *card)

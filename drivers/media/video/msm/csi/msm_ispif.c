@@ -59,9 +59,7 @@ static int msm_ispif_intf_reset(struct ispif_device *ispif,
 		case RDI0:
 			data |= (0x1 << RDI_0_VFE_RST_STB) |
 				(0x1 << RDI_0_CSID_RST_STB);
-#if 1 //#ifdef F_PANTECH_CAMERA_QPATCH_JPEG_ZSL
 			ispif->rdi0_sof_count = 0;
-#endif
 			break;
 
 		case PIX1:
@@ -72,17 +70,13 @@ static int msm_ispif_intf_reset(struct ispif_device *ispif,
 		case RDI1:
 			data |= (0x1 << RDI_1_VFE_RST_STB) |
 				(0x1 << RDI_1_CSID_RST_STB);
-#if 1 //#ifdef F_PANTECH_CAMERA_QPATCH_JPEG_ZSL
 			ispif->rdi1_sof_count = 0;
-#endif
 			break;
 
 		case RDI2:
 			data |= (0x1 << RDI_2_VFE_RST_STB) |
 				(0x1 << RDI_2_CSID_RST_STB);
-#if 1 //#ifdef F_PANTECH_CAMERA_QPATCH_JPEG_ZSL
 			ispif->rdi2_sof_count = 0;
-#endif
 			break;
 
 		default:
@@ -299,6 +293,7 @@ static int msm_ispif_config(struct ispif_device *ispif,
 		msm_ispif_enable_intf_cids(ispif, intftype,
 			ispif_params[i].cid_mask, vfe_intf);
 	}
+	msm_camera_io_w(0x40, ispif->base + ISPIF_CTRL_ADDR);
 
 	msm_camera_io_w(ISPIF_IRQ_STATUS_MASK, ispif->base +
 					ISPIF_IRQ_MASK_ADDR);
@@ -600,7 +595,7 @@ static void ispif_process_irq(struct ispif_device *ispif,
 
 	if (qcmd->ispifInterruptStatus0 &
 			ISPIF_IRQ_STATUS_PIX_SOF_MASK) {
-			CDBG("%s: ispif PIX irq status", __func__);
+			CDBG("%s: ispif PIX irq status\n", __func__);
 			ispif->pix_sof_count++;
 			v4l2_subdev_notify(&ispif->subdev,
 				NOTIFY_VFE_PIX_SOF_COUNT,
@@ -609,20 +604,23 @@ static void ispif_process_irq(struct ispif_device *ispif,
 
 	if (qcmd->ispifInterruptStatus0 &
 			ISPIF_IRQ_STATUS_RDI0_SOF_MASK) {
-			CDBG("%s: ispif RDI0 irq status", __func__);
 			ispif->rdi0_sof_count++;
+			CDBG("%s: ispif RDI0 irq status, counter = %d",
+				__func__, ispif->rdi0_sof_count);
 			send_rdi_sof(ispif, RDI_0, ispif->rdi0_sof_count);
 	}
 	if (qcmd->ispifInterruptStatus1 &
 		ISPIF_IRQ_STATUS_RDI1_SOF_MASK) {
-		CDBG("%s: ispif RDI1 irq status", __func__);
 		ispif->rdi1_sof_count++;
+		CDBG("%s: ispif RDI1 irq status, counter = %d",
+			__func__, ispif->rdi1_sof_count);
 		send_rdi_sof(ispif, RDI_1, ispif->rdi1_sof_count);
 	}
 	if (qcmd->ispifInterruptStatus2 &
 		ISPIF_IRQ_STATUS_RDI2_SOF_MASK) {
-		CDBG("%s: ispif RDI2 irq status", __func__);
 		ispif->rdi2_sof_count++;
+		CDBG("%s: ispif RDI2 irq status, counter = %d",
+			__func__, ispif->rdi2_sof_count);
 		send_rdi_sof(ispif, RDI_2, ispif->rdi2_sof_count);
 	}
 
@@ -656,13 +654,9 @@ static inline void msm_ispif_read_irq_status(struct ispif_irq_status *out,
 	CDBG("%s: irq vfe0 Irq_status0 = 0x%x, 1 = 0x%x, 2 = 0x%x\n",
 		__func__, out->ispifIrqStatus0, out->ispifIrqStatus1,
 		out->ispifIrqStatus2);
-#if 1 //#ifdef F_PANTECH_CAMERA_QPATCH_JPEG_ZSL
 	if (out->ispifIrqStatus0 & ISPIF_IRQ_STATUS_MASK ||
-		out->ispifIrqStatus1 & ISPIF_IRQ_STATUS_1_MASK||
+		out->ispifIrqStatus1 & ISPIF_IRQ_STATUS_1_MASK ||
 		out->ispifIrqStatus2 & ISPIF_IRQ_STATUS_2_MASK) {
-#else
-	if (out->ispifIrqStatus0 & ISPIF_IRQ_STATUS_MASK) {
-#endif
 		if (out->ispifIrqStatus0 & (0x1 << RESET_DONE_IRQ))
 			complete(&ispif->reset_complete);
 		if (out->ispifIrqStatus0 & (0x1 << PIX_INTF_0_OVERFLOW_IRQ))
@@ -755,6 +749,13 @@ static int msm_ispif_init(struct ispif_device *ispif,
 
 static void msm_ispif_release(struct ispif_device *ispif)
 {
+        BUG_ON(!ispif);
+
+	if (!ispif->base) {
+	        pr_err("%s: ispif base is NULL\n", __func__);
+	        return;
+        }
+
 	if (ispif->ispif_state != ISPIF_POWER_UP) {
 		pr_err("%s: ispif invalid state %d\n", __func__,
 			ispif->ispif_state);

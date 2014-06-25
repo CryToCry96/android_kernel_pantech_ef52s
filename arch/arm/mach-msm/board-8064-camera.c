@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -19,6 +19,7 @@
 #include <mach/camera.h>
 #include <mach/msm_bus_board.h>
 #include <mach/gpiomux.h>
+#include <mach/socinfo.h>
 
 #include "devices.h"
 #include "board-8064.h"
@@ -309,7 +310,7 @@ static struct msm_bus_vectors cam_preview_vectors[] = {
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
 #ifndef CONFIG_PANTECH_CAMERA
 		.ab  = 27648000,
-		.ib  = 110592000,
+		.ib  = 2656000000UL,
 #else
         .ab  = 604143360,//331776000,//302071680,//276480000,//110592000,//276480000,//110592000,//548812800,//55296000,//27648000,
         .ib  = 2416573440UL,//1327104000,//1208286720,//1105920000,//442368000,//1646438400,//221184000,//110592000,
@@ -334,8 +335,8 @@ static struct msm_bus_vectors cam_video_vectors[] = {
 		.src = MSM_BUS_MASTER_VFE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
 #ifndef CONFIG_PANTECH_CAMERA
-		.ab  = 274406400,
-		.ib  = 561807360,
+		.ab  = 600000000,
+		.ib  = 2656000000UL,
 #else
 		.ab  = 548812800,	//376012800, //548812800, //348192000,
 		.ib  = 1646438400,	//1128038400, //1123614720, //617103360,
@@ -359,8 +360,8 @@ static struct msm_bus_vectors cam_snapshot_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 274423680,
-		.ib  = 1097694720,
+		.ab  = 600000000,
+		.ib  = 2656000000UL,
 	},
 	{
 		.src = MSM_BUS_MASTER_VPE,
@@ -381,8 +382,8 @@ static struct msm_bus_vectors cam_zsl_vectors[] = {
 		.src = MSM_BUS_MASTER_VFE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
 #ifndef CONFIG_PANTECH_CAMERA		
-		.ab  = 302071680,
-		.ib  = 1208286720,
+		.ab  = 600000000,
+		.ib  = 2656000000UL,
 #else
         .ab  = 604143360,//453107520,//453107520,//604143360,
         .ib  = 2416573440UL,//1812430080,//3080000000UL,//2416573440UL,
@@ -427,8 +428,8 @@ static struct msm_bus_vectors cam_dual_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 348192000,
-		.ib  = 1208286720,
+		.ab  = 600000000,
+		.ib  = 2656000000UL,
 	},
 	{
 		.src = MSM_BUS_MASTER_VPE,
@@ -456,6 +457,26 @@ static struct msm_bus_vectors cam_dual_vectors[] = {
 	},
 };
 
+static struct msm_bus_vectors cam_low_power_vectors[] = {
+	{
+		.src = MSM_BUS_MASTER_VFE,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab  = 1451520,
+		.ib  = 3870720,
+	},
+	{
+		.src = MSM_BUS_MASTER_VPE,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab  = 0,
+		.ib  = 0,
+	},
+	{
+		.src = MSM_BUS_MASTER_JPEG_ENC,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab  = 0,
+		.ib  = 0,
+	},
+};
 
 static struct msm_bus_paths cam_bus_client_config[] = {
 	{
@@ -485,6 +506,10 @@ static struct msm_bus_paths cam_bus_client_config[] = {
 	{
 		ARRAY_SIZE(cam_dual_vectors),
 		cam_dual_vectors,
+	},
+	{
+		ARRAY_SIZE(cam_low_power_vectors),
+		cam_low_power_vectors,
 	},
 };
 
@@ -797,6 +822,38 @@ static struct msm_camera_sensor_info msm_camera_sensor_as0260_data = {
 
 #endif
 
+#ifdef CONFIG_IMX135
+static struct msm_camera_sensor_flash_data flash_imx135 = {
+	.flash_type = MSM_CAMERA_FLASH_NONE,
+};
+
+static struct msm_camera_csi_lane_params imx135_csi_lane_params = {
+	.csi_lane_assign = 0xE4,
+	.csi_lane_mask = 0xF,
+};
+
+static struct msm_camera_sensor_platform_info sensor_board_info_imx135 = {
+	.mount_angle    = 90,
+	.cam_vreg = apq_8064_cam_vreg,
+	.num_vreg = ARRAY_SIZE(apq_8064_cam_vreg),
+	.gpio_conf = &apq8064_back_cam_gpio_conf,
+	.i2c_conf = &apq8064_back_cam_i2c_conf,
+	.csi_lane_params = &imx135_csi_lane_params,
+};
+
+static struct msm_camera_sensor_info msm_camera_sensor_imx135_data = {
+	.sensor_name    = "imx135",
+	.pdata  = &msm_camera_csi_device_data[0],
+	.flash_data = &flash_imx135,
+	.sensor_platform_info = &sensor_board_info_imx135,
+	.csi_if = 1,
+	.camera_type = BACK_CAMERA_2D,
+	.sensor_type = BAYER_SENSOR,
+	.actuator_info = &msm_act_main_cam_1_info,
+};
++
+#endif
+
 #ifdef CONFIG_IMX074
 /* patch1023error
 static struct msm_camera_sensor_flash_data flash_imx074 = {
@@ -979,8 +1036,12 @@ static struct platform_device msm_camera_server = {
 
 void __init apq8064_init_cam(void)
 {
-	msm_gpiomux_install(apq8064_cam_common_configs,
+	/* for SGLTE2 platform, do not configure i2c/gpiomux gsbi4 is used for
+	 * some other purpose */
+	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE2) {
+		msm_gpiomux_install(apq8064_cam_common_configs,
 			ARRAY_SIZE(apq8064_cam_common_configs));
+	}
 
 #ifndef CONFIG_PANTECH_CAMERA
 	if (machine_is_apq8064_cdp()) {
@@ -991,7 +1052,8 @@ void __init apq8064_init_cam(void)
 #endif
 
 	platform_device_register(&msm_camera_server);
-	platform_device_register(&msm8960_device_i2c_mux_gsbi4);
+	if (socinfo_get_platform_subtype() != PLATFORM_SUBTYPE_SGLTE2)
+		platform_device_register(&msm8960_device_i2c_mux_gsbi4);
 	platform_device_register(&msm8960_device_csiphy0);
 	platform_device_register(&msm8960_device_csiphy1);
 	platform_device_register(&msm8960_device_csid0);
@@ -1026,6 +1088,10 @@ static struct i2c_board_info apq8064_camera_i2c_boardinfo[] = {
 	{
 	I2C_BOARD_INFO("imx074", 0x1A),
 	.platform_data = &msm_camera_sensor_imx074_data,
+	},
+	{
+	I2C_BOARD_INFO("imx135", 0x10),
+	.platform_data = &msm_camera_sensor_imx135_data,
 	},
 	{
 	I2C_BOARD_INFO("mt9m114", 0x48),

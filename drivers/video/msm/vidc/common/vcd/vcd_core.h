@@ -1,4 +1,4 @@
-/* Copyright (c) 2010-2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2010-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -147,9 +147,6 @@ struct vcd_dev_ctxt {
 	u32 reqd_perf_lvl;
 	u32 curr_perf_lvl;
 	u32 set_perf_lvl_pending;
-  #if 0// FEATURE_PANTECH_MMP_QCOM_CR, QC_Case#01099598, bump clock to turbo mode for clip which's macroblock count per second goes beyond 1080p 30fps
-	bool turbo_mode_set;
-  #endif
 };
 
 struct vcd_clnt_status {

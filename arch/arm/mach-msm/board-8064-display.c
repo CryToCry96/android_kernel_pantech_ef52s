@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -16,7 +16,7 @@
 #include <linux/gpio.h>
 #include <linux/platform_device.h>
 #include <linux/bootmem.h>
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 #include <asm/mach-types.h>
 #include <mach/msm_memtypes.h>
 #include <mach/board.h>
@@ -195,7 +195,7 @@ static int msm_fb_detect_panel(const char *name)
 					PANEL_NAME_MAX_LEN)))
 				return 0;
 		}
-        } else if (machine_is_apq8064_mtp()	) {
+	} else if (machine_is_apq8064_mtp()) {
 		if (!strncmp(name, MIPI_VIDEO_TOSHIBA_WSVGA_PANEL_NAME,
 			strnlen(MIPI_VIDEO_TOSHIBA_WSVGA_PANEL_NAME,
 				PANEL_NAME_MAX_LEN)))
@@ -222,6 +222,7 @@ static int msm_fb_detect_panel(const char *name)
 			set_mdp_clocks_for_wuxga();
 		return 0;
 	}
+
 
 	return -ENODEV;
 }
@@ -364,7 +365,10 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 
 static struct msm_panel_common_pdata mdp_pdata = {
 	.gpio = MDP_VSYNC_GPIO,
-    .mdp_max_clk = 266667000,
+	.mdp_max_clk = 266667000,
+	.mdp_max_bw = 4290000000u,
+	.mdp_bw_ab_factor = 115,
+	.mdp_bw_ib_factor = 200,
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 	.mdp_rev = MDP_REV_44,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
@@ -389,6 +393,9 @@ void __init apq8064_mdp_writeback(struct memtype_reserve* reserve_table)
 		mdp_pdata.ov0_wb_size;
 	reserve_table[mdp_pdata.mem_hid].size +=
 		mdp_pdata.ov1_wb_size;
+
+	pr_info("mem_map: mdp reserved with size 0x%lx in pool\n",
+			mdp_pdata.ov0_wb_size + mdp_pdata.ov1_wb_size);
 #endif
 }
 
@@ -1737,7 +1744,7 @@ static int lvds_pixel_remap(void)
 	} else if (machine_is_mpq8064_dtv()) {
 		if ((SOCINFO_VERSION_MAJOR(ver) == 1) &&
 		    (SOCINFO_VERSION_MINOR(ver) == 0))
-		return LVDS_PIXEL_MAP_PATTERN_2;
+			return LVDS_PIXEL_MAP_PATTERN_2;
 	}
 	return 0;
 }
@@ -2257,8 +2264,8 @@ void __init apq8064_set_display_params(char *prim_panel, char *ext_panel,
 				PANEL_NAME_MAX_LEN))) {
 			pr_debug("MHL is external display by boot parameter\n");
 			mhl_display_enabled = 1;
+		}
 	}
-}
 
 	msm_fb_pdata.ext_resolution = resolution;
 	hdmi_msm_data.is_mhl_enabled = mhl_display_enabled;

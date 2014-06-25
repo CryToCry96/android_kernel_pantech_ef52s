@@ -220,10 +220,6 @@ u32 vcd_init_device_context(struct vcd_drv_ctxt *drv_ctxt,
 						   VCD_DEVICE_STATE_INITING,
 						   ev_code);
 	}
-    #if 0// FEATURE_PANTECH_MMP_QCOM_CR, QC_Case#01099598, bump clock to turbo mode for clip which's macroblock count per second goes beyond 1080p 30fps  
-	dev_ctxt->turbo_mode_set = 0;
-    #endif
-
 	return rc;
 }
 

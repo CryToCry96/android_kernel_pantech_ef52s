@@ -413,7 +413,7 @@ static int as0260_sensor_set_effect(struct msm_sensor_ctrl_t *s_ctrl ,int8_t eff
 
 	SKYCDBG("%s effect=%d start \n",__func__,effect); //SKYCDBG
 
-	if(effect < CAMERA_EFFECT_OFF || effect >= CAMERA_EFFECT_MAX){
+	if(effect >= CAMERA_EFFECT_MAX){
 		SKYCERR("%s error. effect=%d\n", __func__, effect); //SKYCERR
 		return -EINVAL;
 	}

@@ -58,10 +58,7 @@ static int32_t msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 	uint32_t size = a_ctrl->reg_tbl_size, i = 0;
 	int32_t rc = 0;
 	struct msm_camera_i2c_reg_tbl *i2c_tbl = a_ctrl->i2c_reg_tbl;
-	uint8_t hw_reg_write = 1;
 	CDBG("%s: IN\n", __func__);
-	if (a_ctrl->curr_hwparams == hw_params)
-		hw_reg_write = 0;
 	for (i = 0; i < size; i++) {
 		/* check that the index into i2c_tbl cannot grow larger that
 		the allocated size of i2c_tbl */
@@ -96,29 +93,19 @@ static int32_t msm_actuator_parse_i2c_params(struct msm_actuator_ctrl_t *a_ctrl,
 				i2c_byte1 = (value & 0xFF00) >> 8;
 				i2c_byte2 = value & 0xFF;
 			}
-			CDBG("%s: i2c_byte1:0x%x, i2c_byte2:0x%x\n", __func__,
-				i2c_byte1, i2c_byte2);
-			i2c_tbl[a_ctrl->i2c_tbl_index].reg_addr = i2c_byte1;
-			i2c_tbl[a_ctrl->i2c_tbl_index].reg_data = i2c_byte2;
-			i2c_tbl[a_ctrl->i2c_tbl_index].delay = delay;
-			a_ctrl->i2c_tbl_index++;
 		} else {
-			if (hw_reg_write) {
-				i2c_byte1 = write_arr[i].reg_addr;
-				i2c_byte2 = (hw_dword & write_arr[i].hw_mask) >>
-					write_arr[i].hw_shift;
-				CDBG("%s: i2c_byte1:0x%x, i2c_byte2:0x%x\n", __func__,
-					i2c_byte1, i2c_byte2);
-				i2c_tbl[a_ctrl->i2c_tbl_index].reg_addr = i2c_byte1;
-				i2c_tbl[a_ctrl->i2c_tbl_index].reg_data = i2c_byte2;
-				i2c_tbl[a_ctrl->i2c_tbl_index].delay = delay;
-				a_ctrl->i2c_tbl_index++;
-			}
+			i2c_byte1 = write_arr[i].reg_addr;
+			i2c_byte2 = (hw_dword & write_arr[i].hw_mask) >>
+				write_arr[i].hw_shift;
 		}
+		CDBG("%s: i2c_byte1:0x%x, i2c_byte2:0x%x\n", __func__,
+			i2c_byte1, i2c_byte2);
+		i2c_tbl[a_ctrl->i2c_tbl_index].reg_addr = i2c_byte1;
+		i2c_tbl[a_ctrl->i2c_tbl_index].reg_data = i2c_byte2;
+		i2c_tbl[a_ctrl->i2c_tbl_index].delay = delay;
+		a_ctrl->i2c_tbl_index++;
 	}
-	CDBG("%s: OUT\n", __func__);
-	if (rc == 0)
-		a_ctrl->curr_hwparams = hw_params;
+		CDBG("%s: OUT\n", __func__);
 	return rc;
 }
 
@@ -152,7 +139,6 @@ static int32_t msm_actuator_init_focus(struct msm_actuator_ctrl_t *a_ctrl,
 		if (rc < 0)
 			break;
 	}
-
 	a_ctrl->curr_step_pos = 0;
 	CDBG("%s Exit:%d\n", __func__, rc);
 	return rc;
@@ -365,7 +351,6 @@ static int32_t msm_actuator_init_step_table(struct msm_actuator_ctrl_t *a_ctrl,
 	uint16_t step_boundary = 0;
 	uint32_t max_code_size = 1;
 	uint16_t data_size = set_info->actuator_params.data_size;
-	uint16_t i=0;
 	CDBG("%s called\n", __func__);
 
 	for (; data_size > 0; data_size--)
@@ -418,10 +403,6 @@ static int32_t msm_actuator_init_step_table(struct msm_actuator_ctrl_t *a_ctrl,
 		}
 	}
 
-	for (i=0; i<set_info->af_tuning_params.total_steps; i++) {
-		printk("%s: Step_Pos_Table[%d]:%d\n", __func__, i,
-			a_ctrl->step_position_table[i]);
-	}
 	return rc;
 }
 
@@ -520,6 +501,7 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 		a_ctrl->reg_tbl_size *
 		sizeof(struct msm_actuator_reg_params_t))) {
 		kfree(a_ctrl->i2c_reg_tbl);
+		a_ctrl->i2c_reg_tbl = NULL;
 		return -EFAULT;
 	}
 
@@ -532,6 +514,7 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 				GFP_KERNEL);
 			if (init_settings == NULL) {
 				kfree(a_ctrl->i2c_reg_tbl);
+                                a_ctrl->i2c_reg_tbl = NULL;
 				pr_err("%s Error allocating memory for init_settings\n",
 					__func__);
 				return -EFAULT;
@@ -542,6 +525,7 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 				sizeof(struct reg_settings_t))) {
 				kfree(init_settings);
 				kfree(a_ctrl->i2c_reg_tbl);
+                                a_ctrl->i2c_reg_tbl = NULL;
 				pr_err("%s Error copying init_settings\n",
 					__func__);
 				return -EFAULT;
@@ -553,6 +537,7 @@ static int32_t msm_actuator_init(struct msm_actuator_ctrl_t *a_ctrl,
 			kfree(init_settings);
 			if (rc < 0) {
 				kfree(a_ctrl->i2c_reg_tbl);
+                                a_ctrl->i2c_reg_tbl = NULL;
 				pr_err("%s Error actuator_init_focus\n",
 					__func__);
 				return -EFAULT;
@@ -621,6 +606,7 @@ static int32_t msm_actuator_i2c_probe(
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		pr_err("i2c_check_functionality failed\n");
+		rc = -EFAULT;
 		goto probe_failure;
 	}
 
