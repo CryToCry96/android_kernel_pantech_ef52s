@@ -20,6 +20,8 @@
 #include <linux/mfd/pm8xxx/core.h>
 #include <linux/mfd/pm8xxx/vibrator.h>
 
+#include "../staging/iio/sysfs.h"
+
 #include "../staging/android/timed_output.h"
 
 #define FEATURE_LEVEL_CONTROL
@@ -42,6 +44,8 @@ static int DebugON=0;
 
 #define VIB_MAX_LEVEL_mV	3100
 #define VIB_MIN_LEVEL_mV	1200
+
+static unsigned int vib_level_range=(VIB_MAX_LEVEL_mV - VIB_MIN_LEVEL_mV) / 100;
 
 struct pm8xxx_vib {
 	struct hrtimer vib_timer;
@@ -256,6 +260,36 @@ static enum hrtimer_restart pm8xxx_vib_timer_func(struct hrtimer *timer)
 	return HRTIMER_NORESTART;
 }
 
+static ssize_t pm8xxx_vib_voltage_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int level = vib_dev->level ;
+
+	// convert to percentage form
+	level = (level - VIB_MIN_LEVEL_mV/100) * 100 / vib_level_range ; 
+
+	return sprintf(buf, "%d\n", level);
+}
+
+static ssize_t pm8xxx_vib_voltage_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
+{
+        int level_multiply;
+	sscanf(buf, "%d", &level_multiply);
+	if (level_multiply > 100)
+		level_multiply = 100;
+	else if (level_multiply < 0)
+		level_multiply = 0;
+
+	vib_dev->level = VIB_MIN_LEVEL_mV/100 + vib_level_range * level_multiply / 100;
+
+	return size;
+}
+
+static struct device_attribute pm8xxx_vib_devie_attrs[] = {
+        __ATTR(amp, S_IWUGO | S_IRUGO, pm8xxx_vib_voltage_show, pm8xxx_vib_voltage_store),
+};
+
 #ifdef CONFIG_PM
 static int pm8xxx_vib_suspend(struct device *dev)
 {
@@ -282,7 +316,7 @@ static int __devinit pm8xxx_vib_probe(struct platform_device *pdev)
 	struct pm8xxx_vib *vib;
 	u8 val;
 	int rc;
-
+	int i;
 	dbg_func_in ();
 	
 	if (!pdata)
@@ -335,6 +369,14 @@ static int __devinit pm8xxx_vib_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, vib);
 
 	vib_dev = vib;
+	for (i = 0; i < ARRAY_SIZE(pm8xxx_vib_devie_attrs); i++) {
+		rc = device_create_file(vib->dev,
+				&pm8xxx_vib_devie_attrs[i]);
+		if (rc < 0) {
+			pr_err("%s: failed to create sysfs\n", __func__);
+			goto err_sysfs;
+		}
+	}
 
 	return 0;
 
@@ -342,6 +384,13 @@ static int __devinit pm8xxx_vib_probe(struct platform_device *pdev)
 
 err_read_vib:
 	kfree(vib);
+	return rc;
+
+err_sysfs:
+	for (; i >= 0; i--) {
+		device_remove_file(vib->dev,
+				&pm8xxx_vib_devie_attrs[i]);
+	}
 	return rc;
 }
 
